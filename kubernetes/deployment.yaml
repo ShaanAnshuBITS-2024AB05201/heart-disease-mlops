@@ -1,13 +1,9 @@
-# Kubernetes Deployment for Heart Disease Prediction API
-# Team Members: Shaan Anshu (2024AB05201)
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: heart-disease-api
   labels:
     app: heart-disease-api
-    version: v1
 spec:
   replicas: 2
   selector:
@@ -17,81 +13,49 @@ spec:
     metadata:
       labels:
         app: heart-disease-api
-        version: v1
     spec:
       containers:
       - name: api
         image: shaananshu2024ab05201/heart-disease-api:latest
-        imagePullPolicy: Always
         ports:
         - containerPort: 8000
-          name: http
         env:
         - name: MODEL_PATH
-          value: "/app/models/random_forest_tuned.pkl"
+          value: "models/random_forest_tuned.pkl"
         - name: PREPROCESSOR_PATH
-          value: "/app/models/preprocessor.pkl"
+          value: "models/preprocessor.pkl"
         resources:
           requests:
-            memory: "512Mi"
+            memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "1Gi"
+            memory: "512Mi"
             cpu: "500m"
         livenessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 5
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 3
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: heart-disease-api-service
+  name: heart-disease-service
   labels:
     app: heart-disease-api
 spec:
   type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 8000
-    protocol: TCP
-    name: http
   selector:
     app: heart-disease-api
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: heart-disease-api-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: heart-disease-api
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+    nodePort: 30080
