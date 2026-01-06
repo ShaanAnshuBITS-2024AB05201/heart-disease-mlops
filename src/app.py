@@ -13,6 +13,9 @@ from typing import List, Dict
 import os
 import logging
 from datetime import datetime
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+from fastapi import Response
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +28,11 @@ app = FastAPI(
 
 MODEL_PATH = os.getenv('MODEL_PATH', '/app/models/random_forest_tuned.pkl')
 PREPROCESSOR_PATH = os.getenv('PREPROCESSOR_PATH', '/app/models/preprocessor.pkl')
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('api_requests_total', 'Total API requests', ['method', 'endpoint', 'status'])
+REQUEST_DURATION = Histogram('api_request_duration_seconds', 'API request duration', ['method', 'endpoint'])
+PREDICTION_COUNT = Counter('predictions_total', 'Total predictions made', ['prediction_label'])
 
 # Load model and preprocessor
 try:
@@ -77,6 +85,12 @@ class PredictionResponse(BaseModel):
     probabilities: Dict[str, float]
 
 
+@app.get("/metrics")
+def metrics():
+    """Prometheus metrics endpoint"""
+    return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.get("/")
 def home():
     return {
@@ -112,7 +126,6 @@ def predict(data: PatientData):
         df['hr_reserve'] = 220 - df['age'] - df['thalach']
         
         # Scale ONLY the numerical features
-        # Note: hr_reserve must be added before scaling since scaler expects it
         numerical_to_scale = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'hr_reserve']
         X_numerical = df[numerical_to_scale]
         X_scaled = scaler.transform(X_numerical)
@@ -151,6 +164,13 @@ def predict(data: PatientData):
         )
         
         logger.info(f"Prediction: {pred}, Confidence: {conf:.4f}")
+
+        start_time = time.time()
+        # Record metrics
+        REQUEST_DURATION.labels(method='POST', endpoint='/predict').observe(time.time() - start_time)
+        PREDICTION_COUNT.labels(prediction_label=result.prediction_label).inc()
+        REQUEST_COUNT.labels(method='POST', endpoint='/predict', status=200).inc()
+
         return result
         
     except Exception as e:

@@ -1,19 +1,9 @@
-# Prometheus Configuration
-# Team Members: Shaan Anshu (2024AB05201)
-
 global:
   scrape_interval: 15s
-  evaluation_interval: 15s
-  external_labels:
-    cluster: 'heart-disease-api'
-    env: 'production'
 
 scrape_configs:
-  - job_name: 'heart-disease-api'
+  - job_name: "heart-disease-api"
+    metrics_path: "/metrics"
     static_configs:
-      - targets: ['heart-disease-api-service:80']
-    metrics_path: '/metrics'
-    
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
+      - targets:
+          - "host.docker.internal:8000"
