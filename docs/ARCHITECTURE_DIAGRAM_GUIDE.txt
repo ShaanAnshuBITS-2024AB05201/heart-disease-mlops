@@ -1,0 +1,252 @@
+ARCHITECTURE DIAGRAM FOR MLOPS HEART DISEASE PREDICTION SYSTEM
+
+Instructions: Create this diagram using draw.io, Lucidchart, or PowerPoint
+
+================================================================================
+SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
+[LAYER 1: DATA & DEVELOPMENT]
+┌─────────────────────────────────────────────────────────────┐
+│                    DEVELOPMENT ENVIRONMENT                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │  UCI Dataset │───>│     EDA      │───>│   Feature    │  │
+│  │  (303 rows)  │    │  (Jupyter)   │    │ Engineering  │  │
+│  └──────────────┘    └──────────────┘    └──────────────┘  │
+│                                                   │           │
+│                                                   v           │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │           MODEL TRAINING PIPELINE                     │   │
+│  │  - Logistic Regression                                │   │
+│  │  - Random Forest                                      │   │
+│  │  - Tuned Random Forest (Best)                         │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                  │
+│                            v                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              MLflow Experiment Tracking               │   │
+│  │  - Parameters, Metrics, Artifacts                     │   │
+│  │  - Model Registry                                     │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+                            │
+                            v
+
+[LAYER 2: VERSION CONTROL & CI/CD]
+┌─────────────────────────────────────────────────────────────┐
+│                         GITHUB                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                   Source Code                         │   │
+│  │  - Training scripts                                   │   │
+│  │  - API application                                    │   │
+│  │  - Tests                                              │   │
+│  │  - Configuration files                                │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                  │
+│                            v                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │            GITHUB ACTIONS CI/CD PIPELINE              │   │
+│  │                                                        │   │
+│  │  Stage 1: Lint & Test                                 │   │
+│  │   └─> flake8, black, pytest                           │   │
+│  │                                                        │   │
+│  │  Stage 2: Build & Train                               │   │
+│  │   └─> Generate data, train models, MLflow logging     │   │
+│  │                                                        │   │
+│  │  Stage 3: Build Docker                                │   │
+│  │   └─> Build image, test, push to Docker Hub           │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+                            │
+                            v
+
+[LAYER 3: CONTAINERIZATION]
+┌─────────────────────────────────────────────────────────────┐
+│                        DOCKER HUB                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │     Docker Image: heart-disease-api:latest            │   │
+│  │                                                        │   │
+│  │  Contents:                                             │   │
+│  │  - FastAPI application                                 │   │
+│  │  - Trained model (random_forest_tuned.pkl)             │   │
+│  │  - Preprocessor (preprocessor.pkl)                     │   │
+│  │  - Python dependencies                                 │   │
+│  │  - Health check endpoint                               │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+                            │
+                            v
+
+[LAYER 4: ORCHESTRATION]
+┌─────────────────────────────────────────────────────────────┐
+│                      KUBERNETES CLUSTER                      │
+│                      (Minikube / GKE)                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Load Balancer Service                    │   │
+│  │              (External IP: xxx.xxx.xxx.xxx)           │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                     │             │                          │
+│          ┌──────────┴──────┬──────┴──────┐                  │
+│          v                 v              v                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Pod 1      │  │   Pod 2      │  │   Pod N      │      │
+│  │              │  │              │  │  (Auto-scale) │      │
+│  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │      │
+│  │ │ FastAPI  │ │  │ │ FastAPI  │ │  │ │ FastAPI  │ │      │
+│  │ │Container │ │  │ │Container │ │  │ │Container │ │      │
+│  │ │          │ │  │ │          │ │  │ │          │ │      │
+│  │ │ Model    │ │  │ │ Model    │ │  │ │ Model    │ │      │
+│  │ └──────────┘ │  │ └──────────┘ │  │ └──────────┘ │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │        HorizontalPodAutoscaler (HPA)                  │   │
+│  │        - Min replicas: 2                              │   │
+│  │        - Max replicas: 5                              │   │
+│  │        - Target CPU: 70%                              │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+                            │
+                            v
+
+[LAYER 5: MONITORING & LOGGING]
+┌─────────────────────────────────────────────────────────────┐
+│                   MONITORING STACK                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                   PROMETHEUS                          │   │
+│  │                                                        │   │
+│  │  - Scrapes metrics from API pods every 15s            │   │
+│  │  - Stores time-series data                            │   │
+│  │  - Metrics: requests, latency, errors                 │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                  │
+│                            v                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                     GRAFANA                           │   │
+│  │                                                        │   │
+│  │  - Visualization dashboards                           │   │
+│  │  - Real-time monitoring                               │   │
+│  │  - Alerting (optional)                                │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+[LAYER 6: END USERS]
+┌─────────────────────────────────────────────────────────────┐
+│                        CLIENTS                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │  Web Browser │    │  Mobile App  │    │  API Client  │  │
+│  │              │    │              │    │              │  │
+│  │  Swagger UI  │    │  (Future)    │    │  curl/Python │  │
+│  └──────────────┘    └──────────────┘    └──────────────┘  │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+================================================================================
+DATA FLOW DIAGRAM
+================================================================================
+
+1. TRAINING FLOW:
+   UCI Data → EDA → Feature Engineering → Model Training → MLflow → Model Files
+
+2. DEPLOYMENT FLOW:
+   Code Push → GitHub Actions → Docker Build → Docker Hub → K8s Deploy → Production
+
+3. PREDICTION FLOW:
+   Client Request → Load Balancer → K8s Pod → FastAPI → Model Inference → Response
+
+4. MONITORING FLOW:
+   API Metrics → Prometheus Scrape → Time Series DB → Grafana Dashboard
+
+================================================================================
+KEY COMPONENTS DESCRIPTION
+================================================================================
+
+1. Development Layer:
+   - Jupyter notebooks for EDA
+   - Python scripts for training
+   - MLflow for experiment tracking
+
+2. CI/CD Layer:
+   - GitHub for version control
+   - GitHub Actions for automation
+   - Automated testing and building
+
+3. Containerization:
+   - Docker for packaging
+   - Docker Hub for registry
+   - Isolated environment
+
+4. Orchestration:
+   - Kubernetes for deployment
+   - Load balancing for traffic
+   - Auto-scaling for reliability
+
+5. Monitoring:
+   - Prometheus for metrics
+   - Grafana for visualization
+   - Real-time monitoring
+
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+
+Programming: Python 3.9
+ML Framework: scikit-learn
+Experiment Tracking: MLflow
+API Framework: FastAPI
+Containerization: Docker
+Orchestration: Kubernetes
+CI/CD: GitHub Actions
+Monitoring: Prometheus + Grafana
+Version Control: Git/GitHub
+Registry: Docker Hub
+
+================================================================================
+INSTRUCTIONS FOR CREATING DIAGRAM
+================================================================================
+
+Use these tools to create the visual diagram:
+- draw.io (free, recommended)
+- Lucidchart
+- Microsoft Visio
+- PowerPoint with SmartArt
+
+Elements to include:
+1. All 6 layers shown above
+2. Data flow arrows
+3. Component boxes with labels
+4. Technology stack icons (if available)
+5. Color coding:
+   - Blue: Development/Data
+   - Green: CI/CD
+   - Orange: Deployment
+   - Red: Monitoring
+   - Gray: Users
+
+Export as:
+- PNG or JPG (high resolution, 300 DPI minimum)
+- Save in screenshots/ folder
+- Insert into Word document on Page 9
+
+================================================================================
