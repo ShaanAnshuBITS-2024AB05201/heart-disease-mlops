@@ -27,10 +27,10 @@ wheels/
 .ipynb_checkpoints
 *.ipynb_checkpoints
 
-# ML Models & Data
-models/*.pkl
-models/*.h5
-models/*.pt
+# ML Models & Data (allow model files for deployment)
+# models/*.pkl
+# models/*.h5
+# models/*.pt
 mlruns/
 *.csv
 !data/heart_disease_raw.csv
